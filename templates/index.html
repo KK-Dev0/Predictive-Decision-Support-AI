@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CreditSense | Borrower risk assessment</title>
+  <meta name="description" content="Explainable credit risk decision support trained on 150,000 real borrowers. Educational prototype.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314213D'/%3E%3Cpath d='M8 21l5-6 4 4 7-9' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+{% macro mv(s) %}{% set a = s.split(" +/- ") %}{{ a[0] }}{% if a|length > 1 %}<span class="sd">&plusmn; {{ a[1] }}</span>{% endif %}{% endmacro %}
+<body>
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="#top" aria-label="CreditSense home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#14213D"/><path d="M8 21l5-6 4 4 7-9" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>CreditSense</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#assess">Assess</a>
+      <a href="#performance">Performance</a>
+      <a href="#fairness">Fairness</a>
+      <a href="#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="wrap intro">
+    <p class="kicker">Decision support for lenders</p>
+    <h1>Estimate a borrower's risk, and see what drives it.</h1>
+    <p class="lead">A model trained on 150,000 real borrowers estimates the chance of serious delinquency within two years, turns it into a cost-aware recommendation, and shows which inputs pushed the estimate up or down.</p>
+    <p class="note">Educational prototype. It supports a human decision and does not make one.</p>
+  </section>
+
+  <section id="assess" class="wrap workspace">
+    <form id="assess-form" class="card form-card" novalidate>
+      <div class="card-head">
+        <h2>Borrower details</h2>
+        <div class="presets" role="group" aria-label="Load an example">
+          <span>Examples</span>
+          <button type="button" class="chip" data-preset="steady">Steady repayer</button>
+          <button type="button" class="chip" data-preset="heavy">Heavy credit use</button>
+          <button type="button" class="chip" data-preset="late">Recent late payments</button>
+        </div>
+      </div>
+      {% for g in groups %}
+      <fieldset class="group">
+        <legend>{{ g.title }}</legend>
+        <div class="grid">
+          {% for f in g.fields %}
+          <div class="field">
+            <label for="f-{{ f.key }}">{{ f.label }}</label>
+            <div class="input-wrap">
+              <input id="f-{{ f.key }}" name="{{ f.key }}" type="number" inputmode="decimal" value="{{ f.default }}" min="{{ f.min }}" step="{{ f.step }}" data-kind="{{ f.kind }}" required>
+              {% if f.suffix %}<span class="affix">{{ f.suffix }}</span>{% endif %}
+            </div>
+            <p class="hint">{{ f.hint }}</p>
+            {% if f.unknown %}<label class="check"><input type="checkbox" data-unknown="{{ f.key }}"> Not known</label>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% endfor %}
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <button id="run" class="btn" type="submit">Assess borrower</button>
+    </form>
+
+    <aside id="result" class="card result-card" aria-live="polite">
+      <div id="result-empty" class="empty">
+        <p class="kicker">Result</p>
+        <p class="empty-title">No assessment yet</p>
+        <p class="muted">Enter the borrower's details, or load an example, then run the assessment. The estimate, the recommendation and the factors behind it will appear here.</p>
+        <div class="zonebar ghost"><span></span><span></span><span></span></div>
+      </div>
+      <div id="result-body" hidden>
+        <p class="kicker">Estimated risk of serious delinquency within 2 years</p>
+        <p class="figure"><span id="prob">0.0</span><span class="unit">%</span></p>
+        <p id="verdict" class="verdict" data-band=""></p>
+        <div class="zonebar" id="zonebar" aria-hidden="true">
+          <span class="zone approve"></span><span class="zone review"></span><span class="zone decline"></span>
+          <span class="marker" id="marker"></span>
+        </div>
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+        <p class="legend" id="legend"></p>
+        <p id="context" class="context"></p>
+        <h3>What moves this estimate</h3>
+        <div class="factors">
+          <div><h4>Raises risk</h4><ul id="up" class="flist"></ul></div>
+          <div><h4>Lowers risk</h4><ul id="down" class="flist"></ul></div>
+        </div>
+        <p class="fine">Each input is swapped for a typical value (the median) to see how much the estimate changes. This is a one-at-a-time sensitivity check, not a full explanation.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section id="performance" class="wrap section">
+    <p class="kicker">Performance</p>
+    <h2>How well does it work?</h2>
+    <p class="lead small">Measured on {{ "{:,}".format(meta.n_test) }} borrowers the model never saw during training. Accuracy is not reported: only {{ meta.base_rate | pct }} of borrowers default, so approving everyone would already be {{ ((1 - meta.base_rate) * 100) | round | int }}% accurate.</p>
+    <div class="stats">
+      <div class="stat"><p class="stat-num">{{ "%.3f"|format(meta.test_metrics["ROC-AUC"]) }}</p><p class="stat-label">ROC-AUC</p><p class="stat-sub">How well it ranks risky borrowers above safe ones. 0.5 is random.</p></div>
+      <div class="stat"><p class="stat-num">{{ meta.policy["Share of all defaulters caught (recall)"] | pct0 }}</p><p class="stat-label">of defaulters caught</p><p class="stat-sub">By declining the riskiest {{ meta.policy["Decline rate"] | pct0 }} of applicants.</p></div>
+      <div class="stat"><p class="stat-num">{{ meta.policy["Default rate among approved"] | pct }}</p><p class="stat-label">default rate if approved</p><p class="stat-sub">Compared with {{ meta.base_rate | pct }} across all borrowers.</p></div>
+      <div class="stat"><p class="stat-num">{{ (cost_gain * 100) | round | int }}%</p><p class="stat-label">lower expected cost</p><p class="stat-sub">Than the best policy without a model, if a missed defaulter costs 5 times a wrongly declined good borrower.</p></div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h3>Model comparison</h3>
+        <p class="muted small">5-fold cross-validation on the training set, mean and spread across folds.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Model</th><th>ROC-AUC</th><th>PR-AUC</th><th>Brier</th></tr></thead>
+            <tbody>
+            {% for r in meta.cv_table %}
+              <tr{% if r["Model"] == meta.model_name %} class="sel"{% endif %}><td>{{ r["Model"] }}</td><td>{{ mv(r["ROC-AUC"]) }}</td><td>{{ mv(r["PR-AUC"]) }}</td><td>{{ mv(r["Brier"]) }}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="muted small">The highlighted row is the selected model. The leading models differ by less than the fold-to-fold spread, so they are effectively tied.</p>
+      </div>
+      <div class="card">
+        <h3>What the model relies on</h3>
+        <p class="muted small">Drop in test ROC-AUC when an input is shuffled.</p>
+        <ul class="bars">
+        {% for name, v, rel in importance %}
+          <li><span class="bar-label">{{ name }}</span><span class="bar-track"><span class="bar-fill" style="width: {{ (rel * 100) | round(1) }}%"></span></span><span class="bar-val">{{ "%.3f"|format(v) }}</span></li>
+        {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="fairness" class="wrap section">
+    <p class="kicker">Fairness</p>
+    <h2>Do outcomes differ by age?</h2>
+    <p class="lead small">The data has no sex or race column, but age is present and is a sensitive attribute in lending. Decisions on unseen borrowers were compared across three age groups, with age in the model and with age removed.</p>
+    <div class="card">
+      <div class="tablewrap">
+        <table class="fair">
+          <thead>
+            <tr><th rowspan="2">Age group</th><th rowspan="2">Borrowers</th><th rowspan="2">Actual default rate</th><th rowspan="2">Mean predicted risk</th><th colspan="2">Declined</th><th colspan="2">Good borrowers wrongly declined</th></tr>
+            <tr><th>Age in model</th><th>Age removed</th><th>Age in model</th><th>Age removed</th></tr>
+          </thead>
+          <tbody>
+          {% for r in fair_rows %}
+            <tr><td>{{ r.group }}</td><td>{{ "{:,}".format(r.n) }}</td><td>{{ r.actual | pct }}</td><td>{{ r.pred | pct }}</td><td>{{ r.dec_with | pct }}</td><td>{{ r.dec_without | pct }}</td><td>{{ r.fd_with | pct }}</td><td>{{ r.fd_without | pct }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul class="points">
+      <li><strong>Averages line up.</strong> Mean predicted risk is close to the actual default rate in every group, so the model is not simply over-penalizing one group on average.</li>
+      <li><strong>The burden of errors is uneven.</strong> {{ fair_note.young_fd | pct }} of good borrowers under 30 were declined versus {{ fair_note.old_fd | pct }} of those aged 60 and over{% if fair_note.ratio %}, about {{ fair_note.ratio | round(1) }} times as often{% endif %}.</li>
+      <li><strong>Removing age does not fix it.</strong> Test ROC-AUC falls by only {{ "%.3f"|format(fair_note.auc_drop) }} and decline rates barely move. The likely reason is that other inputs carry age-related signal. That explanation was not tested directly.</li>
+      <li><strong>Read with care.</strong> The youngest group is small, so its rates carry about a point of sampling noise. This is an audit, not a legal compliance review.</li>
+    </ul>
+  </section>
+
+  <section id="about" class="wrap section about">
+    <div>
+      <p class="kicker">About</p>
+      <h2>Method and limits</h2>
+      <p>Data: the Kaggle competition <a href="https://www.kaggle.com/c/GiveMeSomeCredit" target="_blank" rel="noopener">Give Me Some Credit</a>, 150,000 anonymized US borrowers. Target: 90 or more days past due within two years. Pipeline: cleaning, five engineered features, imputing with missing-value flags, ANOVA feature selection, and a tuned {{ meta.model_name }} chosen by cross-validated ROC-AUC. Recommendation bands: decline at {{ t_star | pct }} or higher, manual review from {{ t_review | pct }}.</p>
+    </div>
+    <div>
+      <h3>Limitations</h3>
+      <ul class="points">
+        <li>The data is from around 2011 and from one country, so results will not carry over directly elsewhere.</li>
+        <li>The decline threshold rests on an assumed 5:1 cost ratio, not on real lender data.</li>
+        <li>Probabilities are model estimates, not guarantees.</li>
+        <li>Real lending needs legal review, richer data and human oversight.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot">
+    <p>Built by Kaushikee Karmakar for the SparkIIT AI Internship, Project 2. Educational prototype, not financial advice.</p>
+    <p>This app does not store the details you enter.</p>
+  </div>
+</footer>
+
+<script id="config" type="application/json">{{ config | tojson }}</script>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
