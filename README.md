@@ -8,7 +8,7 @@
 <p>
   <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/scikit--learn-ML-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white" alt="scikit-learn">
-  <img src="https://img.shields.io/badge/Streamlit-App-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/Flask-Web%20App-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Deployed%20on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render">
 </p>
 <p>
@@ -43,7 +43,7 @@ Built for the **SparkIIT AI Training and Internship Program (powered by Wipro DI
 | Train multiple machine learning models | Logistic Regression, Random Forest, Hist Gradient Boosting |
 | Compare model performance | 5-fold cross-validation with ROC-AUC, PR-AUC and Brier score (mean and spread) |
 | Generate predictions and confidence scores | Calibrated risk probability per borrower, plus a cost-based decision threshold |
-| Develop an interactive prediction interface | Streamlit app with a form, colored recommendation, explanation, performance tab and fairness tab |
+| Develop an interactive prediction interface | Custom Flask web app (HTML, CSS, JavaScript) with an input form, a risk scale with recommendation, an explanation of the drivers, and performance and fairness sections |
 
 ---
 
@@ -71,7 +71,7 @@ flowchart LR
     E --> F["🎯 Tune best model"]
     F --> G["💰 Cost-based<br/>decision threshold"]
     G --> H["🔍 Explain + fairness audit"]
-    H --> I["🌐 Streamlit app on Render"]
+    H --> I["🌐 Flask web app on Render"]
 ```
 
 ---
@@ -164,11 +164,13 @@ The data has no sex or race column, but **age** is present and is a sensitive at
 
 ## 🖥️ The App
 
-- 🧮 Enter a borrower's details and get the **estimated risk, a colored recommendation and a "why this score?" breakdown**
-- ❓ Mark income or dependents as **unknown**, as real applications often are
-- 📊 A performance tab with test metrics, the decision rule results and model comparison
-- ⚖️ A fairness tab with the age audit and honest limits
+- 🧮 Enter a borrower's details and get the **estimated risk, a recommendation on a risk scale and a "what moves this estimate" breakdown**
+- ❓ Mark income or dependents as **not known**, as real applications often are
+- 🧪 One-click example borrowers to try the tool quickly
+- 📊 A performance section with test metrics, the decision rule results and the model comparison
+- ⚖️ A fairness section with the age audit and honest limits
 - ⚠️ Sensitive attributes are flagged wherever they influence a score
+- 📱 Responsive layout, and the app stores nothing you enter
 
 <p align="center">
   <img src="assets/app_home.png" width="48%" alt="App home screen">
@@ -183,13 +185,16 @@ The data has no sex or race column, but **age** is present and is a sensitive at
 
 ```
 Predictive-Decision-Support-AI/
-├── app.py                                          # Streamlit web app
+├── app.py                                          # Flask backend (prediction API and page)
+├── templates/
+│   └── index.html                                  # Page layout
+├── static/
+│   ├── style.css                                   # Styling
+│   └── app.js                                      # Form, results and charts logic
 ├── credit_model.joblib                             # Saved pipeline and app metadata
 ├── requirements.txt                                # Python dependencies
 ├── Project2_Predictive_Decision_Support.ipynb      # Full training and evaluation notebook
 ├── Project2_Report_Predictive_Decision_Support.pdf # Project report
-├── .streamlit/
-│   └── config.toml                                 # App theme
 ├── assets/                                         # Figures and screenshots used in this README
 └── README.md
 ```
@@ -203,14 +208,15 @@ Predictive-Decision-Support-AI/
 git clone https://github.com/KK-Dev0/Predictive-Decision-Support-AI.git
 cd Predictive-Decision-Support-AI
 pip install -r requirements.txt
-streamlit run app.py
+python app.py
 ```
+Then open http://localhost:5000
 
 **Retrain the model:** download `cs-training.csv` (or the Kaggle zip) from the dataset page, open `Project2_Predictive_Decision_Support.ipynb` in [Google Colab](https://colab.research.google.com), choose Runtime > Run all, and upload the file when asked. The last cells export `credit_model.joblib`.
 
 **Deploy on Render**
 - Build command: `pip install -r requirements.txt`
-- Start command: `streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
+- Start command: `gunicorn app:app --workers 1 --threads 2 --timeout 60`
 - Set the `PYTHON_VERSION` environment variable, and pin `scikit-learn` in `requirements.txt` to the version used to train the model.
 
 ---
@@ -222,7 +228,7 @@ streamlit run app.py
 | Language | Python |
 | ML | scikit-learn: Logistic Regression, Random Forest, Hist Gradient Boosting, GridSearchCV, feature selection |
 | Data and plots | pandas, NumPy, Matplotlib |
-| App and deployment | Streamlit, Render, GitHub |
+| App and deployment | Flask, HTML, CSS, JavaScript, Gunicorn, Render, GitHub |
 | Environment | Google Colab |
 
 ---
@@ -247,7 +253,7 @@ GitHub: [@KK-Dev0](https://github.com/KK-Dev0)
 
 - **SparkIIT** and **Wipro DICE ID** for the AI training and internship program
 - **Kaggle** and the organizers of the *Give Me Some Credit* competition for the dataset
-- The scikit-learn and Streamlit open-source communities
+- The scikit-learn and Flask open-source communities
 
 <div align="center">
 
