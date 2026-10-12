@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/SparkIIT-AI%20Internship%20Project-7C3AED?style=for-the-badge" alt="SparkIIT">
 </p>
 
-**[🚀 Live Demo](https://YOUR-APP-NAME.onrender.com)** &nbsp;|&nbsp; **[📓 Notebook](./Project2_Predictive_Decision_Support.ipynb)** &nbsp;|&nbsp; **[📑 Full Report (PDF)](./Project2_Report_Predictive_Decision_Support.pdf)**
+**[🚀 Live Demo](https://predictive-decision-support-ai.onrender.com)** &nbsp;|&nbsp; **[📓 Notebook](./Kaushikee_Karmakar_Project2_Predictive_Decision_Support.ipynb)** &nbsp;|&nbsp; **[📑 Full Report (PDF)](./Kaushikee_Karmakar_Project2_Report.pdf)**
 
 </div>
 
@@ -43,7 +43,7 @@ Built for the **SparkIIT AI Training and Internship Program (powered by Wipro DI
 | Train multiple machine learning models | Logistic Regression, Random Forest, Hist Gradient Boosting |
 | Compare model performance | 5-fold cross-validation with ROC-AUC, PR-AUC and Brier score (mean and spread) |
 | Generate predictions and confidence scores | Calibrated risk probability per borrower, plus a cost-based decision threshold |
-| Develop an interactive prediction interface | Custom Flask web app (HTML, CSS, JavaScript) with an input form, a risk scale with recommendation, an explanation of the drivers, and performance and fairness sections |
+| Develop an interactive prediction interface | Custom Flask web app (HTML, CSS, JavaScript) with an input form, a risk scale with recommendation, an explanation of the drivers, and performance and fairness sections. The same interface also exists inside the notebook as the `assess()` function |
 
 ---
 
@@ -185,17 +185,17 @@ The data has no sex or race column, but **age** is present and is a sensitive at
 
 ```
 Predictive-Decision-Support-AI/
-├── app.py                                          # Flask backend (prediction API and page)
+├── app.py                          # Flask backend (prediction API and page)
 ├── templates/
-│   └── index.html                                  # Page layout
+│   └── index.html                  # Page layout
 ├── static/
-│   ├── style.css                                   # Styling
-│   └── app.js                                      # Form, results and charts logic
-├── credit_model.joblib                             # Saved pipeline and app metadata
-├── requirements.txt                                # Python dependencies
-├── Project2_Predictive_Decision_Support.ipynb      # Full training and evaluation notebook
-├── Project2_Report_Predictive_Decision_Support.pdf # Project report
-├── assets/                                         # Figures and screenshots used in this README
+│   ├── style.css                   # Styling
+│   └── app.js                      # Form, results and charts logic
+├── credit_model.joblib             # Saved pipeline and app metadata
+├── requirements.txt                # Python dependencies
+├── Kaushikee_Karmakar_Project2_Predictive_Decision_Support.ipynb   # Executed notebook with all outputs
+├── Kaushikee_Karmakar_Project2_Report.pdf                        # Project report (PDF)
+├── assets/                         # Figures and screenshots used in this README
 └── README.md
 ```
 
@@ -212,7 +212,7 @@ python app.py
 ```
 Then open http://localhost:5000
 
-**Retrain the model:** download `cs-training.csv` (or the Kaggle zip) from the dataset page, open `Project2_Predictive_Decision_Support.ipynb` in [Google Colab](https://colab.research.google.com), choose Runtime > Run all, and upload the file when asked. The last cells export `credit_model.joblib`.
+**Retrain the model:** download `cs-training.csv` (or the Kaggle zip) from the dataset page, open `Kaushikee_Karmakar_Project2_Predictive_Decision_Support.ipynb` in [Google Colab](https://colab.research.google.com), choose Runtime > Run all, and upload the file when asked. The last cells export `credit_model.joblib`.
 
 **Deploy on Render**
 - Build command: `pip install -r requirements.txt`
